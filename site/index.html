@@ -3,11 +3,917 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sandbox</title>
+    <title>Sandbox Field Notes</title>
+    <meta name="description" content="A hand-drawn, searchable topic tree of sandbox notes.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Kalam:wght@300;400&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --paper: #fdfbf4;
+        --desk: #e8e3d4;
+        --ink: #1f4fa3;
+        --pencil: #66666e;
+        --rule: #d3dfee;
+        --margin: #e6a0a0;
+        --marker: rgba(255, 219, 40, 0.55);
+        --tape: rgba(232, 218, 160, 0.78);
+        --shadow: 0 1px 2px rgba(60, 50, 20, 0.08), 0 18px 40px -18px rgba(60, 50, 20, 0.35);
+        --pen-1: #1f4fa3;
+        --pen-2: #b3372f;
+        --pen-3: #2c7a4b;
+        --pen-4: #6d45a8;
+        --pen-5: #a8600f;
+        --row: 2.5rem;
+        --indent: 2.1rem;
+        --pad-l: 92px;
+        --pad-r: 36px;
+        --hand: "Caveat", "Bradley Hand", "Chalkboard SE", "Comic Sans MS", cursive;
+        --note: "Kalam", "Bradley Hand", "Chalkboard SE", cursive;
+        color-scheme: light;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --paper: #1d2127;
+          --desk: #111316;
+          --ink: #9cc4ff;
+          --pencil: #a2a7b0;
+          --rule: rgba(156, 196, 255, 0.11);
+          --margin: rgba(236, 120, 120, 0.45);
+          --marker: rgba(255, 214, 10, 0.26);
+          --tape: rgba(210, 196, 150, 0.22);
+          --shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+          --pen-1: #9cc4ff;
+          --pen-2: #ff9d94;
+          --pen-3: #86d9a5;
+          --pen-4: #c8a9ff;
+          --pen-5: #f5b565;
+          color-scheme: dark;
+        }
+      }
+
+      :root[data-theme="dark"] {
+        --paper: #1d2127;
+        --desk: #111316;
+        --ink: #9cc4ff;
+        --pencil: #a2a7b0;
+        --rule: rgba(156, 196, 255, 0.11);
+        --margin: rgba(236, 120, 120, 0.45);
+        --marker: rgba(255, 214, 10, 0.26);
+        --tape: rgba(210, 196, 150, 0.22);
+        --shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.7);
+        --pen-1: #9cc4ff;
+        --pen-2: #ff9d94;
+        --pen-3: #86d9a5;
+        --pen-4: #c8a9ff;
+        --pen-5: #f5b565;
+        color-scheme: dark;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100svh;
+        background: var(--desk);
+        color: var(--ink);
+        font-family: var(--hand);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        display: flex;
+        justify-content: center;
+        padding: 44px 16px 64px;
+      }
+
+      /* ---------- the sheet of paper ---------- */
+
+      .sheet {
+        position: relative;
+        width: min(100%, 900px);
+        padding: 30px var(--pad-r) 36px var(--pad-l);
+        background: var(--paper);
+        border-radius: 3px 6px 4px 7px;
+        box-shadow: var(--shadow);
+      }
+
+      .sheet::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(var(--pad-l) - 22px);
+        border-left: 1.5px solid var(--margin);
+        pointer-events: none;
+      }
+
+      .sheet::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 20px;
+        width: 22px;
+        background:
+          radial-gradient(circle, var(--desk) 8px, transparent 9px) 0 14% / 22px 22px no-repeat,
+          radial-gradient(circle, var(--desk) 8px, transparent 9px) 0 50% / 22px 22px no-repeat,
+          radial-gradient(circle, var(--desk) 8px, transparent 9px) 0 86% / 22px 22px no-repeat;
+        pointer-events: none;
+      }
+
+      .tape {
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        width: 140px;
+        height: 32px;
+        background: var(--tape);
+        transform: translateX(-50%) rotate(-3deg);
+        clip-path: polygon(2% 8%, 10% 0, 22% 10%, 35% 2%, 50% 9%, 64% 0, 78% 8%, 90% 1%, 100% 9%, 98% 92%, 88% 100%, 75% 91%, 60% 100%, 45% 92%, 30% 100%, 16% 91%, 4% 100%);
+      }
+
+      /* ---------- header ---------- */
+
+      .kicker {
+        margin: 0;
+        color: var(--pencil);
+        font-family: var(--note);
+        font-size: 1.05rem;
+        font-weight: 300;
+        transform: rotate(-1deg);
+      }
+
+      .tools {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px 14px;
+        margin: 14px 0 22px;
+      }
+
+      .search {
+        display: flex;
+        flex: 1 1 240px;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        padding: 4px 14px;
+        border: 2px solid currentColor;
+        border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      }
+
+      .search svg { flex: none; width: 20px; height: 20px; }
+
+      .search input {
+        width: 100%;
+        min-width: 0;
+        padding: 6px 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font-family: var(--note);
+        font-size: 1.15rem;
+        outline: none;
+      }
+
+      .search input::placeholder { color: var(--pencil); opacity: 0.8; }
+      .search input::-webkit-search-cancel-button { display: none; }
+      .search:focus-within { box-shadow: 0 0 0 4px var(--marker); }
+
+      .sketch-btn {
+        padding: 6px 14px;
+        border: 2px solid currentColor;
+        border-radius: 15px 225px 15px 255px / 255px 15px 225px 15px;
+        background: transparent;
+        color: inherit;
+        font-family: var(--hand);
+        font-size: 1.35rem;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: transform 120ms ease, background 120ms ease;
+      }
+
+      .sketch-btn:nth-of-type(2) { transform: rotate(1.5deg); }
+      .sketch-btn:hover { background: var(--marker); transform: rotate(-1.5deg) translateY(-1px); }
+      .sketch-btn:active { transform: translateY(1px); }
+      .sketch-btn:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--marker); }
+
+      .status {
+        color: var(--pencil);
+        font-family: var(--note);
+        font-size: 1rem;
+        font-weight: 300;
+        white-space: nowrap;
+      }
+
+      /* ---------- ruled tree area ---------- */
+
+      .tree-wrap {
+        position: relative;
+        min-height: calc(var(--row) * 14);
+        margin: 0 calc(-1 * var(--pad-r)) 0 calc(-1 * var(--pad-l));
+        padding: 0 var(--pad-r) 0 var(--pad-l);
+        background-image: linear-gradient(to bottom, transparent calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px));
+        background-position: 0 calc(var(--row) * -0.18);
+        background-size: 100% var(--row);
+      }
+
+      .ink {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .ink path {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.6;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 0;
+      }
+
+      .ink path.ghost { stroke-width: 1; opacity: 0.35; }
+      .ink path.fresh { stroke-dashoffset: 1; animation: draw 520ms ease-out forwards; }
+
+      ul[role="tree"],
+      ul[role="group"] {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      ul[role="group"] { padding-left: var(--indent); }
+
+      .node { color: var(--pen, var(--ink)); outline: none; }
+      .node[aria-expanded="false"] > ul { display: none; }
+      .node.is-filtered { display: none; }
+
+      .row {
+        display: grid;
+        grid-template-columns: 1.5rem 1fr;
+        column-gap: 0.55rem;
+        min-height: var(--row);
+      }
+
+      .node[aria-expanded] > .row { cursor: pointer; }
+
+      .glyph {
+        display: grid;
+        height: var(--row);
+        place-items: center;
+      }
+
+      .glyph svg {
+        width: 1.35rem;
+        height: 1.35rem;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-width: 1.7;
+        transition: transform 260ms cubic-bezier(0.3, 1.4, 0.5, 1);
+      }
+
+      .glyph .g-vert { transform-origin: 12px 12px; transition: transform 200ms ease, opacity 200ms ease; }
+      .node[aria-expanded="true"] > .row .glyph svg { transform: rotate(180deg); }
+      .node[aria-expanded="true"] > .row .g-vert { opacity: 0; transform: scaleY(0); }
+
+      .body {
+        min-width: 0;
+        line-height: var(--row);
+      }
+
+      .label {
+        position: relative;
+        display: inline;
+        font-size: 1.7rem;
+        line-height: 1;
+        overflow-wrap: anywhere;
+      }
+
+      .lvl-2 > .row .label { font-size: 2rem; font-weight: 600; }
+
+      .count {
+        margin-left: 0.35rem;
+        color: var(--pencil);
+        font-family: var(--note);
+        font-size: 0.95rem;
+        font-weight: 300;
+        line-height: 1;
+      }
+
+      .count::before { content: "·"; margin-right: 0.3rem; }
+
+      .note {
+        margin-left: 0.6rem;
+        color: var(--pencil);
+        font-family: var(--note);
+        font-size: 1.08rem;
+        font-weight: 300;
+        line-height: 1;
+      }
+
+      .note::before { content: "— "; }
+
+      mark {
+        padding: 0 0.08em;
+        border-radius: 0.3em 0.1em 0.35em 0.15em;
+        background: var(--marker);
+        color: inherit;
+      }
+
+      .node:focus-visible > .row .text,
+      .row:hover .text {
+        color: inherit;
+        background: linear-gradient(100deg, transparent 0.2em, var(--marker) 0.35em, var(--marker) calc(100% - 0.3em), transparent calc(100% - 0.15em));
+        border-radius: 0.2em;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+      }
+
+      .node:focus-visible > .row .text {
+        text-decoration: underline wavy;
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 0.2em;
+      }
+
+      /* root: the big circled title, two ruled lines tall */
+      .lvl-1 > .row { min-height: calc(var(--row) * 2); }
+      .lvl-1 > .row .glyph { height: calc(var(--row) * 2); }
+      .lvl-1 > .row .body { line-height: calc(var(--row) * 2); padding-left: 0.6rem; }
+      .lvl-1 > .row .label { font-size: 3.4rem; font-weight: 700; }
+      .lvl-1 > .row:hover .text,
+      .lvl-1:focus-visible > .row .text { background: none; }
+      .lvl-1:focus-visible > .row .ring path { stroke-width: 3; }
+      .lvl-1 > .row .count { display: none; }
+
+      .ring {
+        position: absolute;
+        inset: -0.3em -0.45em -0.2em -0.4em;
+        width: calc(100% + 0.85em);
+        height: calc(100% + 0.5em);
+        overflow: visible;
+        pointer-events: none;
+      }
+
+      .ring path {
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-width: 2;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        animation: draw 900ms 150ms ease-out forwards;
+      }
+
+      .empty {
+        margin: 0;
+        padding-left: 2rem;
+        color: var(--pencil);
+        font-size: 1.6rem;
+        line-height: var(--row);
+        transform: rotate(-1.5deg);
+      }
+
+      .keys {
+        margin: 18px 0 0;
+        color: var(--pencil);
+        font-family: var(--note);
+        font-size: 0.95rem;
+        font-weight: 300;
+        text-align: right;
+      }
+
+      .keys kbd {
+        padding: 0 5px;
+        border: 1.5px solid currentColor;
+        border-radius: 6px 3px 7px 4px;
+        font: inherit;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
+
+      @keyframes draw { to { stroke-dashoffset: 0; } }
+
+      @media (max-width: 640px) {
+        :root { --pad-l: 42px; --pad-r: 16px; --indent: 1.5rem; }
+        main { padding: 28px 8px 40px; }
+        .sheet::after { display: none; }
+        .sheet::before { left: 28px; }
+        .label { font-size: 1.5rem; }
+        .lvl-2 > .row .label { font-size: 1.75rem; }
+        .lvl-1 > .row .label { font-size: 2.8rem; }
+        .note { font-size: 0.98rem; }
+        .sketch-btn { font-size: 1.2rem; padding: 4px 12px; }
+      }
+
+      @media (pointer: coarse) { .keys { display: none; } }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: 0.01ms !important; animation-delay: 0ms !important; transition-duration: 0.01ms !important; }
+      }
+    </style>
   </head>
   <body>
     <main>
-      <h1>Sandbox</h1>
+      <article class="sheet">
+        <div class="tape" aria-hidden="true"></div>
+        <p class="kicker">field notes · things worth knowing</p>
+
+        <div class="tools">
+          <label class="search">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10.4 3.6c3.9-.3 6.9 2.6 6.8 6.4-.1 3.7-3.1 6.5-6.7 6.4-3.7-.1-6.5-3-6.3-6.6.2-3.4 2.8-6 6.9-6.1"/><path d="M15.3 15.6l5.2 5"/></svg>
+            <span class="visually-hidden">Search topics</span>
+            <input id="q" type="search" placeholder="find a topic…   press /" autocomplete="off" spellcheck="false">
+          </label>
+          <button class="sketch-btn" type="button" data-act="expand">unfold all</button>
+          <button class="sketch-btn" type="button" data-act="collapse">fold all</button>
+          <span class="status" id="status" aria-live="polite"></span>
+        </div>
+
+        <div class="tree-wrap" id="tree-wrap">
+          <svg class="ink" aria-hidden="true" focusable="false">
+            <defs>
+              <filter id="pencil" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="7" result="grain"/>
+                <feDisplacementMap in="SourceGraphic" in2="grain" scale="1.6"/>
+              </filter>
+            </defs>
+            <g id="ink" filter="url(#pencil)"></g>
+          </svg>
+          <ul id="tree" role="tree" aria-label="Sandbox topics"></ul>
+          <p class="empty" id="empty" hidden>nothing on this page… try “retry” or “gc”</p>
+        </div>
+
+        <p class="keys"><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>→</kbd> unfold · <kbd>←</kbd> fold · <kbd>/</kbd> search</p>
+      </article>
     </main>
+
+    <script>
+      // Add topics here: { label, note?, children? }
+      const TOPICS = {
+        label: "sandbox",
+        children: [
+          {
+            label: "reliability",
+            note: "keep working when things break",
+            children: [
+              { label: "circuit_breaker", note: "stop hammering a failing dependency" },
+              {
+                label: "retry",
+                note: "try again, carefully",
+                children: [
+                  { label: "backoff", note: "wait longer after each failure" },
+                  { label: "jitter", note: "randomize waits, avoid a thundering herd" },
+                ],
+              },
+              { label: "bulkhead", note: "isolate pools so one leak can't sink the ship" },
+              { label: "timeouts", note: "never wait forever" },
+              { label: "rate_limiting", note: "cap requests per client per window" },
+              { label: "fallbacks", note: "cached or default answer when a call fails" },
+              { label: "health_checks", note: "liveness vs readiness" },
+              { label: "load_shedding", note: "drop low-priority work under pressure" },
+              { label: "idempotency", note: "same request twice = same result" },
+              { label: "graceful_degradation", note: "lose features, not the whole app" },
+            ],
+          },
+          {
+            label: "java",
+            note: "JVM land",
+            children: [
+              { label: "gc", note: "G1, ZGC · pause time vs throughput" },
+              {
+                label: "springboot",
+                note: "opinionated Spring apps",
+                children: [{ label: "health", note: "actuator /health endpoint" }],
+              },
+            ],
+          },
+          { label: "python" },
+          { label: "salesforce" },
+          { label: "javascript" },
+        ],
+      };
+
+      const PLUS = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 3.2C18 3 21.2 6.8 20.9 12.2 20.6 17.6 16.6 21 11.6 20.8 6.4 20.6 3 16.8 3.2 11.6 3.4 6.8 7 3.3 13.4 3.9"/><path d="M8 12.4 16.2 11.8"/><path class="g-vert" d="M12 7.9 12.3 16.3"/></svg>';
+      const DOT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 11.3c1.2-1.3 3-.5 2.6 1-.4 1.4-2.5 1.3-2.7 0-.1-.9.9-1.5 1.7-1"/></svg>';
+      const RING = '<svg class="ring" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" vector-effect="non-scaling-stroke" d="M112 7C160 5 195 20 193 41 191 64 146 77 96 75 45 73 7 60 8 39 9 19 52 6 124 10"/></svg>';
+      const STORE_KEY = "sandbox-notes:open";
+      const SVG_NS = "http://www.w3.org/2000/svg";
+
+      const wrap = document.getElementById("tree-wrap");
+      const treeEl = document.getElementById("tree");
+      const ink = document.getElementById("ink");
+      const search = document.getElementById("q");
+      const statusEl = document.getElementById("status");
+      const emptyEl = document.getElementById("empty");
+
+      const all = [];
+      let root;
+      let tabStop;
+
+      function el(tag, className) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        return node;
+      }
+
+      function build(data, parent, level, pos, size) {
+        const kids = data.children || [];
+        const node = {
+          id: parent ? `${parent.id}/${data.label}` : data.label,
+          display: data.label.replace(/_/g, " "),
+          note: data.note || "",
+          parent,
+          level,
+          children: [],
+          expandable: kids.length > 0,
+        };
+        node.hay = `${node.display} ${data.label} ${node.note}`.toLowerCase();
+
+        const li = el("li", `node lvl-${Math.min(level, 3)}`);
+        li.setAttribute("role", "treeitem");
+        li.setAttribute("aria-level", level);
+        li.setAttribute("aria-setsize", size);
+        li.setAttribute("aria-posinset", pos);
+        li.tabIndex = -1;
+        if (level === 2) li.style.setProperty("--pen", `var(--pen-${((pos - 1) % 5) + 1})`);
+
+        const row = el("div", "row");
+        const glyph = el("span", "glyph");
+        glyph.innerHTML = node.expandable ? PLUS : DOT;
+        const body = el("span", "body");
+        const label = el("span", "label");
+        const text = el("span", "text");
+        text.textContent = node.display;
+        label.append(text);
+        if (level === 1) label.insertAdjacentHTML("beforeend", RING);
+        body.append(label);
+        if (node.expandable) {
+          const count = el("span", "count");
+          count.textContent = kids.length;
+          count.setAttribute("aria-label", `${kids.length} subtopics`);
+          body.append(count);
+        }
+        let noteEl = null;
+        if (node.note) {
+          noteEl = el("span", "note");
+          noteEl.textContent = node.note;
+          body.append(noteEl);
+        }
+        row.append(glyph, body);
+        li.append(row);
+        Object.assign(node, { li, glyph, text, noteEl });
+        all.push(node);
+
+        if (node.expandable) {
+          li.setAttribute("aria-expanded", "false");
+          const group = el("ul");
+          group.setAttribute("role", "group");
+          kids.forEach((child, i) => {
+            const childNode = build(child, node, level + 1, i + 1, kids.length);
+            node.children.push(childNode);
+            group.append(childNode.li);
+          });
+          li.append(group);
+        }
+        li._node = node;
+        return node;
+      }
+
+      // ---------- open / closed state ----------
+
+      const isOpen = (n) => n.li.getAttribute("aria-expanded") === "true";
+      const isFiltered = (n) => n.li.classList.contains("is-filtered");
+      let searching = false;
+
+      function loadOpen() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+          if (Array.isArray(saved)) return new Set(saved);
+        } catch {}
+        return new Set([root.id]);
+      }
+
+      function saveOpen() {
+        if (searching) return;
+        try {
+          localStorage.setItem(STORE_KEY, JSON.stringify(all.filter((n) => n.expandable && isOpen(n)).map((n) => n.id)));
+        } catch {}
+      }
+
+      function applyOpen(openIds) {
+        for (const n of all) if (n.expandable) n.li.setAttribute("aria-expanded", String(openIds.has(n.id)));
+      }
+
+      function setOpen(n, open) {
+        if (!n.expandable || isOpen(n) === open) return;
+        n.li.setAttribute("aria-expanded", String(open));
+        saveOpen();
+        refresh();
+      }
+
+      function isVisible(n) {
+        if (isFiltered(n)) return false;
+        for (let p = n.parent; p; p = p.parent) if (!isOpen(p)) return false;
+        return true;
+      }
+
+      // ---------- keyboard navigation (roving tabindex) ----------
+
+      function focusNode(n) {
+        if (!n) return;
+        if (tabStop) tabStop.li.tabIndex = -1;
+        tabStop = n;
+        n.li.tabIndex = 0;
+        n.li.focus({ preventScroll: false });
+      }
+
+      function ensureTabStop() {
+        if (!tabStop || !isVisible(tabStop)) {
+          if (tabStop) tabStop.li.tabIndex = -1;
+          tabStop = all.find(isVisible) || root;
+          tabStop.li.tabIndex = 0;
+        }
+      }
+
+      treeEl.addEventListener("keydown", (event) => {
+        const n = event.target._node;
+        if (!n) return;
+        const visible = all.filter(isVisible);
+        const i = visible.indexOf(n);
+        switch (event.key) {
+          case "ArrowDown": focusNode(visible[i + 1]); break;
+          case "ArrowUp": focusNode(visible[i - 1]); break;
+          case "Home": focusNode(visible[0]); break;
+          case "End": focusNode(visible[visible.length - 1]); break;
+          case "ArrowRight":
+            if (n.expandable && !isOpen(n)) setOpen(n, true);
+            else if (n.expandable) focusNode(n.children.find(isVisible));
+            break;
+          case "ArrowLeft":
+            if (n.expandable && isOpen(n)) setOpen(n, false);
+            else focusNode(n.parent);
+            break;
+          case "Enter":
+          case " ":
+            setOpen(n, !isOpen(n));
+            break;
+          case "*":
+            (n.parent ? n.parent.children : [n]).forEach((s) => s.expandable && s.li.setAttribute("aria-expanded", "true"));
+            saveOpen();
+            refresh();
+            break;
+          default:
+            return;
+        }
+        event.preventDefault();
+      });
+
+      treeEl.addEventListener("click", (event) => {
+        const row = event.target.closest(".row");
+        if (!row) return;
+        const n = row.parentElement._node;
+        focusNode(n);
+        setOpen(n, !isOpen(n));
+      });
+
+      // ---------- search ----------
+
+      function mark(target, source, q) {
+        target.replaceChildren();
+        const lower = source.toLowerCase();
+        let at = 0;
+        let hit = q ? lower.indexOf(q) : -1;
+        while (hit !== -1) {
+          target.append(source.slice(at, hit));
+          const m = document.createElement("mark");
+          m.textContent = source.slice(hit, hit + q.length);
+          target.append(m);
+          at = hit + q.length;
+          hit = lower.indexOf(q, at);
+        }
+        target.append(source.slice(at));
+      }
+
+      let openBeforeSearch = null;
+
+      function runSearch() {
+        const q = search.value.trim().toLowerCase().replace(/_/g, " ");
+        if (!q) {
+          searching = false;
+          all.forEach((n) => {
+            n.li.classList.remove("is-filtered");
+            mark(n.text, n.display, "");
+            if (n.noteEl) mark(n.noteEl, n.note, "");
+          });
+          if (openBeforeSearch) applyOpen(openBeforeSearch);
+          openBeforeSearch = null;
+          emptyEl.hidden = true;
+          refresh();
+          return;
+        }
+
+        if (!searching) {
+          openBeforeSearch = new Set(all.filter((n) => n.expandable && isOpen(n)).map((n) => n.id));
+          searching = true;
+        }
+
+        const keep = new Set();
+        const open = new Set();
+        let hits = 0;
+        for (const n of all) {
+          const hit = n !== root && n.hay.includes(q);
+          mark(n.text, n.display, hit ? q : "");
+          if (n.noteEl) mark(n.noteEl, n.note, hit ? q : "");
+          if (!hit) continue;
+          hits += 1;
+          keep.add(n);
+          for (let p = n.parent; p; p = p.parent) {
+            keep.add(p);
+            open.add(p.id);
+          }
+        }
+        all.forEach((n) => n.li.classList.toggle("is-filtered", !keep.has(n)));
+        applyOpen(open);
+        emptyEl.hidden = hits > 0;
+        refresh(`${hits} found`);
+      }
+
+      search.addEventListener("input", runSearch);
+      search.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          search.value = "";
+          runSearch();
+          focusNode(tabStop);
+        } else if (event.key === "ArrowDown" || event.key === "Enter") {
+          event.preventDefault();
+          ensureTabStop();
+          focusNode(all.find((n) => n !== root && isVisible(n)) || root);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "/" && document.activeElement !== search) {
+          event.preventDefault();
+          search.focus();
+          search.select();
+        }
+      });
+
+      document.querySelectorAll("[data-act]").forEach((button) => {
+        button.addEventListener("click", () => {
+          if (search.value) {
+            search.value = "";
+            runSearch();
+          }
+          const expand = button.dataset.act === "expand";
+          applyOpen(new Set(all.filter((n) => expand || n === root).map((n) => n.id)));
+          saveOpen();
+          refresh();
+        });
+      });
+
+      // ---------- pencil connectors ----------
+
+      function hash(str) {
+        let h = 2166136261;
+        for (let i = 0; i < str.length; i += 1) {
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function rng(seed) {
+        let s = seed || 1;
+        return () => {
+          s ^= s << 13;
+          s ^= s >>> 17;
+          s ^= s << 5;
+          return (s >>> 0) / 4294967296;
+        };
+      }
+
+      // Resample a polyline, add a slow wobble, then smooth it with quadratic curves.
+      function sketch(points, seed, amp) {
+        const random = rng(seed);
+        const dense = [];
+        for (let i = 0; i < points.length - 1; i += 1) {
+          const [x1, y1] = points[i];
+          const [x2, y2] = points[i + 1];
+          const steps = Math.max(1, Math.round(Math.hypot(x2 - x1, y2 - y1) / 16));
+          for (let s = 0; s < steps; s += 1) dense.push([x1 + ((x2 - x1) * s) / steps, y1 + ((y2 - y1) * s) / steps]);
+        }
+        dense.push(points[points.length - 1]);
+        let dx = 0;
+        let dy = 0;
+        const wobbly = dense.map(([x, y], i) => {
+          if (i === 0 || i === dense.length - 1) return [x, y];
+          dx = dx * 0.55 + (random() - 0.5) * amp;
+          dy = dy * 0.55 + (random() - 0.5) * amp;
+          return [x + dx, y + dy];
+        });
+        const f = (v) => v.toFixed(1);
+        let d = `M ${f(wobbly[0][0])} ${f(wobbly[0][1])}`;
+        for (let i = 1; i < wobbly.length - 1; i += 1) {
+          const [x, y] = wobbly[i];
+          const [nx, ny] = wobbly[i + 1];
+          d += ` Q ${f(x)} ${f(y)} ${f((x + nx) / 2)} ${f((y + ny) / 2)}`;
+        }
+        const last = wobbly[wobbly.length - 1];
+        return `${d} L ${f(last[0])} ${f(last[1])}`;
+      }
+
+      // key -> time the stroke first appeared, so redraws mid-animation keep animating
+      const drawn = new Map();
+
+      function stroke(key, points, color, delay) {
+        const elapsed = drawn.has(key) ? performance.now() - drawn.get(key) : 0;
+        const fresh = elapsed < delay + 700;
+        const paths = [];
+        [["", 1.4], ["ghost", 2.6]].forEach(([kind, amp], pass) => {
+          const path = document.createElementNS(SVG_NS, "path");
+          path.setAttribute("d", sketch(points, hash(key + pass), amp));
+          path.setAttribute("pathLength", "1");
+          path.style.stroke = color;
+          path.setAttribute("class", `${kind}${fresh ? " fresh" : ""}`.trim());
+          if (fresh) path.style.animationDelay = `${delay + pass * 60 - elapsed}ms`;
+          paths.push(path);
+        });
+        return paths;
+      }
+
+      function draw() {
+        const box = wrap.getBoundingClientRect();
+        ink.parentNode.setAttribute("viewBox", `0 0 ${box.width} ${box.height}`);
+        const paths = [];
+        const live = new Set();
+        const R = 9;
+
+        for (const n of all) {
+          if (!n.expandable || !isOpen(n) || !isVisible(n)) continue;
+          const kids = n.children.filter((c) => !isFiltered(c));
+          if (!kids.length) continue;
+          const g = n.glyph.getBoundingClientRect();
+          const x = g.left + g.width / 2 - box.left;
+          const top = g.top + g.height / 2 - box.top + 12;
+          const ends = kids.map((c) => {
+            const r = c.glyph.getBoundingClientRect();
+            return { c, x: r.left - box.left + 2, y: r.top + r.height / 2 - box.top };
+          });
+          const lastY = ends[ends.length - 1].y;
+          const trunkKey = `${n.id}>`;
+          const parentColor = getComputedStyle(n.li).color;
+          paths.push(...stroke(trunkKey, [[x, top], [x, lastY - R]], parentColor, 0));
+          live.add(trunkKey);
+
+          ends.forEach((e, i) => {
+            const key = `${n.id}>${e.c.id}`;
+            const arc = [0.25, 0.5, 0.75].map((t) => {
+              const a = (t * Math.PI) / 2;
+              return [x + R - R * Math.cos(a), e.y - R + R * Math.sin(a)];
+            });
+            const points = [[x, e.y - R], ...arc, [x + R, e.y], [Math.max(e.x, x + R + 2), e.y]];
+            paths.push(...stroke(key, points, getComputedStyle(e.c.li).color, 180 + i * 45));
+            live.add(key);
+          });
+        }
+
+        const now = performance.now();
+        for (const key of [...drawn.keys()]) if (!live.has(key)) drawn.delete(key);
+        live.forEach((key) => drawn.has(key) || drawn.set(key, now));
+        ink.replaceChildren(...paths);
+      }
+
+      function refresh(statusText) {
+        ensureTabStop();
+        const topics = all.length - 1;
+        statusEl.textContent = searching ? statusText || statusEl.textContent : `${topics} topics`;
+        draw();
+      }
+
+      // ---------- boot ----------
+
+      root = build(TOPICS, null, 1, 1, 1);
+      treeEl.append(root.li);
+      applyOpen(loadOpen());
+      refresh();
+
+      new ResizeObserver(() => draw()).observe(wrap);
+      if (document.fonts) document.fonts.ready.then(() => draw());
+    </script>
   </body>
 </html>
